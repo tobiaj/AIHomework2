@@ -13,7 +13,6 @@ import java.util.Random;
  * Created by tobiaj on 2016-11-09.
  */
 public class CuratorAgent extends SuperAgent {
-    private java.util.HashMap<Integer, Artifacts> listOfArtifacts;
 
 
     public void setup() {
@@ -23,6 +22,17 @@ public class CuratorAgent extends SuperAgent {
         String service = "bidder";
 
         registerService(this, service);
+
+        addBehaviour(new OneShotBehaviour() {
+            @Override
+            public void action() {
+                startingPoint();
+            }
+        });
+
+    }
+
+    private void startingPoint() {
 
         MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
         MessageTemplate messageTemplateWinner = MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL);
@@ -43,12 +53,16 @@ public class CuratorAgent extends SuperAgent {
 
         @Override
         protected void handleMessage(ACLMessage msg) {
-            super.handleMessage(msg);
             Auction auction = new Auction();
             addBehaviour(auction);
+
         }
 
-
+        @Override
+        public int onEnd() {
+            myAgent.addBehaviour(this);
+            return super.onEnd();
+        }
     }
 
     public class WinnerMessage extends MsgReceiver {
@@ -60,7 +74,9 @@ public class CuratorAgent extends SuperAgent {
         protected void handleMessage(ACLMessage msg) {
             super.handleMessage(msg);
             System.out.println("Jag heter " + getLocalName() + " och jag vann!");
+            startingPoint();
         }
+
     }
 
     public class Auction extends Behaviour {
@@ -68,28 +84,28 @@ public class CuratorAgent extends SuperAgent {
         @Override
         public void action() {
 
-            MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.CFP);
-            ACLMessage msg = myAgent.blockingReceive(mt);
+            if (!ArtistManager.auctionEnd) {
+                MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+                ACLMessage msg = myAgent.blockingReceive(mt);
 
-            int rand = new Random().nextInt(100 + 1);
+                int rand = new Random().nextInt(100 + 1);
 
-            if (msg != null && ArtistManager.receivedAnswers <= 1) {
-                System.out.println("Price that curator " + getLocalName() + " received: " + msg.getContent());
-                ACLMessage reply = msg.createReply();
-                //              reply.setContent("Skicka tillbaka från curator: " + getLocalName());
-                if (rand > 90) {
-                    reply.setPerformative(ACLMessage.PROPOSE);
-                    System.out.println(getLocalName() + " accepts.");
+                if (msg != null && ArtistManager.receivedAnswers <= 1) {
+                    ACLMessage reply = msg.createReply();
+                    if (rand > 90) {
+                        reply.setPerformative(ACLMessage.PROPOSE);
+                    } else {
+                        reply.setPerformative(ACLMessage.REFUSE);
+                    }
+                    send(reply);
                 } else {
-                    reply.setPerformative(ACLMessage.REFUSE);
-                    System.out.println(getLocalName() + " rejects.");
+                    block();
                 }
-                send(reply);
-            } else {
-                block();
+            }
+            else{
+                startingPoint();
             }
         }
-
         @Override
         public boolean done() {
             return false;
