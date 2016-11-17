@@ -2,21 +2,11 @@ package Agents;
 
 import jade.core.Agent;
 import jade.core.behaviours.*;
-import jade.domain.DFService;
-import jade.domain.FIPAAgentManagement.*;
-import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-import jade.lang.acl.UnreadableException;
-import jade.proto.SimpleAchieveREResponder;
-import jade.proto.SubscriptionInitiator;
 import jade.proto.states.MsgReceiver;
-import jade.util.leap.ArrayList;
-import jade.util.leap.Iterator;
 import userAndArtifacts.Artifacts;
-import userAndArtifacts.User;
 
-import java.io.IOException;
 import java.util.Random;
 
 /**
@@ -35,8 +25,13 @@ public class CuratorAgent extends SuperAgent {
         registerService(this, service);
 
         MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+        MessageTemplate messageTemplateWinner = MessageTemplate.MatchOntology("Winner");
+
 
         MessageReceiver messageReceiver = new MessageReceiver(this, messageTemplate, Long.MAX_VALUE, null, null);
+        WinnerMessage winnerMessage = new WinnerMessage(this, messageTemplateWinner, Long.MAX_VALUE, null, null);
+
+        addBehaviour(winnerMessage);
         addBehaviour(messageReceiver);
 
     }
@@ -57,6 +52,23 @@ public class CuratorAgent extends SuperAgent {
 
     }
 
+    public class WinnerMessage extends MsgReceiver {
+        public WinnerMessage(Agent a, MessageTemplate mt, long deadline, DataStore s, Object msgKey) {
+            super(a, mt, deadline, s, msgKey);
+        }
+
+        @Override
+        protected void handleMessage(ACLMessage msg) {
+            super.handleMessage(msg);
+            System.out.println("Jag vann : " + myAgent.getLocalName());
+        }
+
+        @Override
+        public void reset() {
+            super.reset();
+        }
+    }
+
     public class Auction extends Behaviour {
 
         @Override
@@ -68,11 +80,12 @@ public class CuratorAgent extends SuperAgent {
             int rand = new Random().nextInt(100+1);
 
             if (msg != null) {
-                System.out.println("Meddelandet som Curator tog emot: " + msg.getContent());
+                System.out.println("Meddelandet som Curator: " + getLocalName() + " tog emot: " + msg.getContent());
                 ACLMessage reply = msg.createReply();
-                reply.setContent("Skicka tillbaka från curator");
+                reply.setContent("Skicka tillbaka från curator: " + getLocalName());
                 if (rand > 90)
                     reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+
                 else
                     reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
 

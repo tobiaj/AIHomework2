@@ -68,16 +68,15 @@ public class ArtistManager extends SuperAgent {
             protected void handleMessage(ACLMessage msg) {
                 super.handleMessage(msg);
                     ACLMessage reply = blockingReceive();
+                System.out.println("Got a approve form curator agent: " + msg.getSender());
+                reply.addReceiver(msg.getSender());
                 reply.createReply();
-                reply.setContent("heasdas");
+                reply.setOntology("Winner");
+                reply.setContent("Winner");
                 send(reply);
 
             }
 
-            @Override
-            public void reset() {
-                super.reset();
-            }
         }
     }
 
@@ -96,13 +95,13 @@ public class ArtistManager extends SuperAgent {
                 receivedAnswers++;
             }
             else {
+                System.out.println("Taken all proposes");
                 receivedAnswers = 0;
-                int price = getNewProposal();
+                double price = getNewProposal();
                 ACLMessage newResponse = new ACLMessage(ACLMessage.INFORM);
                 newResponse.setContent("item" + " ,price: " + price);
-                System.out.println("Taken all proposes");
+                send(newResponse);
             }
-            System.out.println("Fick " + receivedAnswers + " svar!");
         }
 
         @Override
@@ -111,8 +110,10 @@ public class ArtistManager extends SuperAgent {
         }
     }
 
-    private int getNewProposal() {
-        return (int) (artifact.getInitialPrice() * 0.9);
+    private double getNewProposal() {
+        double newPrice =  (int) artifact.getInitialPrice() * 0.9;
+        artifact.setInitialPrice(newPrice);
+        return  newPrice;
     }
 
     private void startAuction() {

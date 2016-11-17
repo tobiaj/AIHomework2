@@ -7,8 +7,8 @@ import java.io.Serializable;
  */
 public class Artifacts implements Serializable {
     private String name;
-    private int initialPrice;
-    private int reservedPrice;
+    private double initialPrice;
+    private double reservedPrice;
 
     public Artifacts(){
         name = "item";
@@ -24,19 +24,19 @@ public class Artifacts implements Serializable {
         this.name = name;
     }
 
-    public int getInitialPrice() {
+    public double getInitialPrice() {
         return initialPrice;
     }
 
-    public void setInitialPrice(int initialPrice) {
+    public void setInitialPrice(double initialPrice) {
         this.initialPrice = initialPrice;
     }
 
-    public int getReservedPrice() {
+    public double getReservedPrice() {
         return reservedPrice;
     }
 
-    public void setReservedPrice(int reservedPrice) {
+    public void setReservedPrice(double reservedPrice) {
         this.reservedPrice = reservedPrice;
     }
 }
