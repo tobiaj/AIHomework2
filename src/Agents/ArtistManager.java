@@ -44,7 +44,7 @@ public class ArtistManager extends SuperAgent {
             participants.forEach(msg::addReceiver);
             send(msg);
 
-            MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
+            MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL);
             ReceivePropose receivePropose = new ReceivePropose(myAgent, messageTemplate, Long.MAX_VALUE, null, null);
             addBehaviour(receivePropose);
 

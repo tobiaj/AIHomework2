@@ -17,6 +17,7 @@ import userAndArtifacts.Artifacts;
 import userAndArtifacts.User;
 
 import java.io.IOException;
+import java.util.Random;
 
 /**
  * Created by tobiaj on 2016-11-09.
@@ -64,10 +65,17 @@ public class CuratorAgent extends SuperAgent {
             MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.CFP);
             ACLMessage msg = myAgent.blockingReceive(mt);
 
+            int rand = new Random().nextInt(100+1);
+
             if (msg != null) {
                 System.out.println("Meddelandet som Curator tog emot: " + msg.getContent());
                 ACLMessage reply = msg.createReply();
                 reply.setContent("Skicka tillbaka från curator");
+                if (rand > 90)
+                    reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+                else
+                    reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+
                 send(reply);
             } else {
                 block();
