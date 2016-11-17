@@ -4,11 +4,14 @@ import jade.core.Agent;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.ParallelBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
+import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.*;
+import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
 import jade.proto.SimpleAchieveREResponder;
+import jade.proto.SubscriptionInitiator;
 import jade.util.leap.ArrayList;
 import jade.util.leap.Iterator;
 import userAndArtifacts.Artifacts;
@@ -27,33 +30,9 @@ public class CuratorAgent extends SuperAgent {
         super.setup();
         System.out.println("The Curator agent " + getLocalName() + " has started");
 
-        String service = "curatorAgent";
-        registerService(this, service);
 
-        ParallelBehaviour parallelBehaviour = new ParallelBehaviour();
+        createSubscription();
 
-        SequentialBehaviour seq = new SequentialBehaviour();
-
-        MessageTemplate messageTemplateRequest = MessageTemplate.MatchOntology("artifactsRequest");
-        MessageTemplate messageTemplateInfo = MessageTemplate.MatchOntology("artifactsInfo");
-
-        ArtifactsRequest artifactsRequest = new ArtifactsRequest(this, messageTemplateRequest);
-        ArtifactsInfo artifactsInfo = new ArtifactsInfo(this, messageTemplateInfo);
-
-        parallelBehaviour.addSubBehaviour(artifactsRequest);
-        parallelBehaviour.addSubBehaviour(artifactsInfo);
-
-        seq.addSubBehaviour(new OneShotBehaviour() {
-            @Override
-            public void action() {
-                createListOfArtifacts();
-
-            }
-        });
-
-        seq.addSubBehaviour(parallelBehaviour);
-
-        addBehaviour(seq);
 
     }
 
@@ -66,109 +45,37 @@ public class CuratorAgent extends SuperAgent {
         }
     }
 
+    private void createSubscription() {
+        DFAgentDescription template = new DFAgentDescription();
+        ServiceDescription serviceDescription = new ServiceDescription();
+        serviceDescription.setType("Auction");
+        SearchConstraints search = new SearchConstraints();
 
-    class ArtifactsRequest extends SimpleAchieveREResponder {
+        template.addServices(serviceDescription);
 
-        public ArtifactsRequest(Agent agent, MessageTemplate messageTemplate) {
-            super(agent, messageTemplate);
-        }
+        Subscribe subscribe = new Subscribe(this, DFService.createSubscriptionMessage(this, getDefaultDF(), template, search));
 
-        @Override
-        protected ACLMessage prepareResponse(ACLMessage request) throws NotUnderstoodException, RefuseException {
-            System.out.println("The curator agent " + myAgent.getLocalName() + " received a artifact request to create tour based on user preferences");
-            ACLMessage reply = request.createReply();
-            reply.setPerformative(ACLMessage.INFORM);
+        addBehaviour(subscribe);
 
-            try {
-                User user = (User) request.getContentObject();
-                ArrayList listOfArtifactsIDs = createTourForUser(user);
-                try {
-                    reply.setContentObject(listOfArtifactsIDs);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            } catch (UnreadableException e) {
-                e.printStackTrace();
-            }
-
-            return reply;
-        }
-
-        @Override
-        public int onEnd() {
-            myAgent.addBehaviour(this);
-            return super.onEnd();
-        }
-
-        private ArrayList createTourForUser(User user) {
-
-            ArrayList listOfArtifactsIDs = new ArrayList();
-
-            for (Artifacts artifact : listOfArtifacts.values()) {
-                if (artifact.getGenre().equals(user.getInterest())){
-                    listOfArtifactsIDs.add(artifact.getId());
-                }
-            }
-
-            return listOfArtifactsIDs;
-        }
     }
 
+    public class Subscribe extends SubscriptionInitiator {
 
-    class ArtifactsInfo extends SimpleAchieveREResponder {
-
-        public ArtifactsInfo(Agent agent, MessageTemplate messageTemplate) {
-            super(agent, messageTemplate);
+        public Subscribe(Agent agent, ACLMessage message){
+            super(agent, message);
         }
 
-        @Override
-        protected ACLMessage prepareResponse(ACLMessage request) throws NotUnderstoodException, RefuseException {
-            System.out.println("The curator agent " + myAgent.getLocalName() + " received a artifact information request to return information about artifacts");
-
-            ACLMessage reply = request.createReply();
-            reply.setPerformative(ACLMessage.INFORM);
-
+        protected void handleInform(ACLMessage inform){
             try {
-                ArrayList listOfArtifactsIDs = (ArrayList) request.getContentObject();
-                ArrayList listOfArtifactsInfo = getInfoAboutArtifacts(listOfArtifactsIDs);
-                try {
-                    reply.setContentObject(listOfArtifactsInfo);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                DFAgentDescription[] result = DFService.decodeNotification(inform.getContent());
+                if (result.length > 0) {
+                    System.out.println("Profiler agent " + getLocalName() + " received a subscription message from SuperAgent with name " + getDefaultDF());
 
-            } catch (UnreadableException e) {
+                }
+            } catch (FIPAException e) {
                 e.printStackTrace();
             }
-
-            return reply;
         }
-
-        private ArrayList getInfoAboutArtifacts(ArrayList listOfArtifactsIDs) {
-
-            ArrayList artifactsToReturnWithInformation = new ArrayList();
-
-            Iterator it = listOfArtifactsIDs.iterator();
-
-            while(it.hasNext()){
-                Artifacts artifact = listOfArtifacts.get(it.next());
-                if (artifact != null){
-                    artifactsToReturnWithInformation.add(artifact);
-                }
-
-            }
-
-            return artifactsToReturnWithInformation;
-        }
-
-        @Override
-        public int onEnd() {
-            myAgent.addBehaviour(this);
-            return super.onEnd();
-        }
-
-
     }
 
 
