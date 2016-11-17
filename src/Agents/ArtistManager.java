@@ -44,14 +44,46 @@ public class ArtistManager extends SuperAgent {
             participants.forEach(msg::addReceiver);
             send(msg);
 
-            MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL);
-            ReceivePropose receivePropose = new ReceivePropose(myAgent, messageTemplate, Long.MAX_VALUE, null, null);
-            addBehaviour(receivePropose);
+            MessageTemplate messageTemplateAccept = MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL);
+            MessageTemplate messageTemplateDeny = MessageTemplate.MatchPerformative(ACLMessage.REJECT_PROPOSAL);
 
+            ReceiveProposeAccept receiveProposeAccept = new ReceiveProposeAccept(myAgent, messageTemplateAccept, Long.MAX_VALUE, null, null);
+            ReceiveProposeDeny receiveProposeDeny = new ReceiveProposeDeny(myAgent, messageTemplateDeny, Long.MAX_VALUE, null, null);
+
+            addBehaviour(receiveProposeAccept);
+            addBehaviour(receiveProposeDeny);
+
+        }
+
+        public class ReceiveProposeAccept extends MsgReceiver{
+            public ReceiveProposeAccept(Agent a, MessageTemplate mt, long deadline, DataStore s, Object msgKey) {
+                super(a, mt, deadline, s, msgKey);
+            }
+
+            @Override
+            protected void handleMessage(ACLMessage msg) {
+                super.handleMessage(msg);
+
+                if (receivedAnswers != participants.size()){
+                    ACLMessage reply = blockingReceive();
+                    System.out.println(reply.getContent());
+                    receivedAnswers++;
+                }
+                else {
+                    System.out.println("Taken all proposes");
+                }
+                System.out.println("Fick " + receivedAnswers + " svar!");
+            }
+
+            @Override
+            public void reset() {
+                super.reset();
+            }
+        }
     }
 
-    public class ReceivePropose extends MsgReceiver{
-        public ReceivePropose(Agent a, MessageTemplate mt, long deadline, DataStore s, Object msgKey) {
+    public class ReceiveProposeDeny extends MsgReceiver{
+        public ReceiveProposeDeny(Agent a, MessageTemplate mt, long deadline, DataStore s, Object msgKey) {
             super(a, mt, deadline, s, msgKey);
         }
 
@@ -62,6 +94,7 @@ public class ArtistManager extends SuperAgent {
             if (receivedAnswers != participants.size()){
                 ACLMessage reply = blockingReceive();
                 System.out.println(reply.getContent());
+                reply.setContent("asjfi");
                 receivedAnswers++;
             }
             else {
@@ -74,7 +107,6 @@ public class ArtistManager extends SuperAgent {
         public void reset() {
             super.reset();
         }
-    }
     }
 
     private void startAuction() {
