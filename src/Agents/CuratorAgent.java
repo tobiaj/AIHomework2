@@ -33,7 +33,7 @@ public class CuratorAgent extends SuperAgent {
 
         registerService(this, service);
 
-        MessageTemplate messageTemplate = MessageTemplate.MatchOntology("Inform");
+        MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
 
         MessageReceiver messageReceiver = new MessageReceiver(this, messageTemplate, Long.MAX_VALUE, null, null);
         addBehaviour(messageReceiver);
@@ -62,10 +62,12 @@ public class CuratorAgent extends SuperAgent {
         public void action() {
 
             MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.CFP);
-            ACLMessage msg = myAgent.receive(mt);
+            ACLMessage msg = myAgent.blockingReceive(mt);
 
             if (msg != null) {
                 System.out.println("Meddelandet som Curator tog emot: " + msg.getContent());
+                msg.createReply();
+                send(msg);
             } else {
                 block();
             }
