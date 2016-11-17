@@ -88,13 +88,5 @@ public class CuratorAgent extends SuperAgent {
         }
     }
 
-    private void createListOfArtifacts() {
-
-        listOfArtifacts = new java.util.HashMap<>();
-        for (int i = 0; i < 20; i++) {
-            Artifacts artifact = new Artifacts();
-            listOfArtifacts.put(artifact.getId(), artifact);
-        }
-    }
 
 }

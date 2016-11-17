@@ -12,13 +12,16 @@ import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.states.MsgReceiver;
+import userAndArtifacts.Artifacts;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 /**
  * Created by tobiaj on 2016-11-17.
  */
 public class ArtistManager extends SuperAgent {
+    private Artifacts artifact;
 
     private static ArrayList<AID> participants;
     private int receivedAnswers = 0;
@@ -27,6 +30,7 @@ public class ArtistManager extends SuperAgent {
         super.setup();
         System.out.println("The Artist manager agent " + getLocalName() + " has started");
 
+        artifact = new Artifacts();
         getAllCuratorAID();
         startAuction();
 
@@ -39,7 +43,7 @@ public class ArtistManager extends SuperAgent {
 
             ACLMessage msg = new ACLMessage(ACLMessage.CFP);
 
-            msg.setContent(String.valueOf(100));
+            msg.setContent("item" + " ,price: " + artifact.getInitialPrice());
 
             participants.forEach(msg::addReceiver);
             send(msg);
@@ -63,16 +67,11 @@ public class ArtistManager extends SuperAgent {
             @Override
             protected void handleMessage(ACLMessage msg) {
                 super.handleMessage(msg);
-
-                if (receivedAnswers != participants.size()){
                     ACLMessage reply = blockingReceive();
-                    System.out.println(reply.getContent());
-                    receivedAnswers++;
-                }
-                else {
-                    System.out.println("Taken all proposes");
-                }
-                System.out.println("Fick " + receivedAnswers + " svar!");
+                reply.createReply();
+                reply.setContent("heasdas");
+                send(reply);
+
             }
 
             @Override
@@ -90,14 +89,17 @@ public class ArtistManager extends SuperAgent {
         @Override
         protected void handleMessage(ACLMessage msg) {
             super.handleMessage(msg);
+            ACLMessage reply = blockingReceive();
 
             if (receivedAnswers != participants.size()){
-                ACLMessage reply = blockingReceive();
-                System.out.println(reply.getContent());
-                reply.setContent("asjfi");
+                System.out.println("Got deny message containing: " + reply.getContent());
                 receivedAnswers++;
             }
             else {
+                receivedAnswers = 0;
+                int price = getNewProposal();
+                ACLMessage newResponse = new ACLMessage(ACLMessage.INFORM);
+                newResponse.setContent("item" + " ,price: " + price);
                 System.out.println("Taken all proposes");
             }
             System.out.println("Fick " + receivedAnswers + " svar!");
@@ -107,6 +109,10 @@ public class ArtistManager extends SuperAgent {
         public void reset() {
             super.reset();
         }
+    }
+
+    private int getNewProposal() {
+        return (int) (artifact.getInitialPrice() * 0.9);
     }
 
     private void startAuction() {
