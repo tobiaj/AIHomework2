@@ -33,6 +33,11 @@ public class CuratorAgent extends SuperAgent {
 
         registerService(this, service);
 
+        MessageTemplate messageTemplate = MessageTemplate.MatchOntology("Inform");
+
+        MessageReceiver messageReceiver = new MessageReceiver(this, messageTemplate, Long.MAX_VALUE, null, null);
+        addBehaviour(messageReceiver);
+
 
     }
 
@@ -44,9 +49,11 @@ public class CuratorAgent extends SuperAgent {
         @Override
         protected void handleMessage(ACLMessage msg) {
             super.handleMessage(msg);
-
-
+            Auction auction = new Auction();
+            addBehaviour(auction);
         }
+
+
     }
 
     public class Auction extends Behaviour {

@@ -54,6 +54,7 @@ public class ArtistManager extends SuperAgent {
 
     private void startAuction() {
         ACLMessage initiate = new ACLMessage(ACLMessage.INFORM);
+        initiate.setOntology("Inform");
         participants.forEach(initiate::addReceiver);
     }
 
