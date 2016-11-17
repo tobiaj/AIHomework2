@@ -38,7 +38,6 @@ public class CuratorAgent extends SuperAgent {
         MessageReceiver messageReceiver = new MessageReceiver(this, messageTemplate, Long.MAX_VALUE, null, null);
         addBehaviour(messageReceiver);
 
-
     }
 
     public class MessageReceiver extends MsgReceiver {
@@ -49,6 +48,7 @@ public class CuratorAgent extends SuperAgent {
         @Override
         protected void handleMessage(ACLMessage msg) {
             super.handleMessage(msg);
+            System.out.println("Kommer inform message till curator, message content: " + msg.getContent());
             Auction auction = new Auction();
             addBehaviour(auction);
         }
@@ -66,8 +66,9 @@ public class CuratorAgent extends SuperAgent {
 
             if (msg != null) {
                 System.out.println("Meddelandet som Curator tog emot: " + msg.getContent());
-                msg.createReply();
-                send(msg);
+                ACLMessage reply = msg.createReply();
+                reply.setContent("Skicka tillbaka från curator");
+                send(reply);
             } else {
                 block();
             }

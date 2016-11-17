@@ -1,13 +1,17 @@
 package Agents;
 
 import jade.core.AID;
+import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 
+import jade.core.behaviours.DataStore;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
+import jade.proto.states.MsgReceiver;
 
 import java.util.ArrayList;
 
@@ -28,7 +32,7 @@ public class ArtistManager extends SuperAgent {
 
     }
 
-    public class Auction extends CyclicBehaviour {
+    public class Auctioneer extends CyclicBehaviour {
 
         @Override
         public void action() {
@@ -40,30 +44,54 @@ public class ArtistManager extends SuperAgent {
             participants.forEach(msg::addReceiver);
             send(msg);
 
-            addBehaviour(new CyclicBehaviour() {
-                @Override
-                public void action() {
-                    if (receivedAnswers != participants.size()){
-                        ACLMessage reply = blockingReceive();
-                        receivedAnswers++;
-                    }
-                    System.out.println("Fick " + receivedAnswers + " svar!");
-                    removeBehaviour(this);
-                }
-            });
+            MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
+            ReceivePropose receivePropose = new ReceivePropose(myAgent, messageTemplate, Long.MAX_VALUE, null, null);
+            addBehaviour(receivePropose);
 
+    }
+
+    public class ReceivePropose extends MsgReceiver{
+        public ReceivePropose(Agent a, MessageTemplate mt, long deadline, DataStore s, Object msgKey) {
+            super(a, mt, deadline, s, msgKey);
         }
+
+        @Override
+        protected void handleMessage(ACLMessage msg) {
+            super.handleMessage(msg);
+
+            if (receivedAnswers != participants.size()){
+                ACLMessage reply = blockingReceive();
+                System.out.println(reply.getContent());
+                receivedAnswers++;
+            }
+            else {
+                System.out.println("Taken all proposes");
+            }
+            System.out.println("Fick " + receivedAnswers + " svar!");
+        }
+
+        @Override
+        public void reset() {
+            super.reset();
+        }
+    }
     }
 
     private void startAuction() {
+        System.out.println("Hur ser participants ut" + participants);
         ACLMessage initiate = new ACLMessage(ACLMessage.INFORM);
+        initiate.setContent("START AUCTION");
         participants.forEach(initiate::addReceiver);
+        send(initiate);
+
+        Auctioneer auctioneer = new Auctioneer();
+        addBehaviour(auctioneer);
     }
 
     public void getAllCuratorAID() {
         DFAgentDescription template = new DFAgentDescription();
         ServiceDescription serviceDescription = new ServiceDescription();
-        serviceDescription.setType("curatorAgent");
+        serviceDescription.setType("bidder");
         template.addServices(serviceDescription);
         participants = new ArrayList<>();
 
