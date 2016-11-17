@@ -16,7 +16,7 @@ public class SuperAgent extends Agent {
 
     }
 
-    public static AID getCuratorAID(Agent agent) {
+    public AID getCuratorAID(Agent agent) {
         DFAgentDescription template = new DFAgentDescription();
         ServiceDescription serviceDescription = new ServiceDescription();
         serviceDescription.setType("curatorAgent");
@@ -35,6 +35,8 @@ public class SuperAgent extends Agent {
     }
 
     public void registerService(Agent agent, String service) {
+
+        System.out.println("Curator Agent " + getLocalName() + " has added its service:" + service);
 
         DFAgentDescription dfd = new DFAgentDescription();
         dfd.setName(agent.getAID());

@@ -1,9 +1,7 @@
 package Agents;
 
 import jade.core.Agent;
-import jade.core.behaviours.OneShotBehaviour;
-import jade.core.behaviours.ParallelBehaviour;
-import jade.core.behaviours.SequentialBehaviour;
+import jade.core.behaviours.*;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.*;
 import jade.domain.FIPAException;
@@ -12,6 +10,7 @@ import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
 import jade.proto.SimpleAchieveREResponder;
 import jade.proto.SubscriptionInitiator;
+import jade.proto.states.MsgReceiver;
 import jade.util.leap.ArrayList;
 import jade.util.leap.Iterator;
 import userAndArtifacts.Artifacts;
@@ -30,10 +29,45 @@ public class CuratorAgent extends SuperAgent {
         super.setup();
         System.out.println("The Curator agent " + getLocalName() + " has started");
 
+        String service = "bidder";
 
-        createSubscription();
+        registerService(this, service);
 
 
+    }
+
+    public class MessageReceiver extends MsgReceiver {
+        public MessageReceiver(Agent a, MessageTemplate mt, long deadline, DataStore s, Object msgKey) {
+            super(a, mt, deadline, s, msgKey);
+        }
+
+        @Override
+        protected void handleMessage(ACLMessage msg) {
+            super.handleMessage(msg);
+
+
+        }
+    }
+
+    public class Auction extends Behaviour {
+
+        @Override
+        public void action() {
+
+            MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.CFP);
+            ACLMessage msg = myAgent.receive(mt);
+
+            if (msg != null) {
+                System.out.println("Meddelandet som Curator tog emot: " + msg.getContent());
+            } else {
+                block();
+            }
+        }
+
+        @Override
+        public boolean done() {
+            return false;
+        }
     }
 
     private void createListOfArtifacts() {
@@ -44,39 +78,5 @@ public class CuratorAgent extends SuperAgent {
             listOfArtifacts.put(artifact.getId(), artifact);
         }
     }
-
-    private void createSubscription() {
-        DFAgentDescription template = new DFAgentDescription();
-        ServiceDescription serviceDescription = new ServiceDescription();
-        serviceDescription.setType("Auction");
-        SearchConstraints search = new SearchConstraints();
-
-        template.addServices(serviceDescription);
-
-        Subscribe subscribe = new Subscribe(this, DFService.createSubscriptionMessage(this, getDefaultDF(), template, search));
-
-        addBehaviour(subscribe);
-
-    }
-
-    public class Subscribe extends SubscriptionInitiator {
-
-        public Subscribe(Agent agent, ACLMessage message){
-            super(agent, message);
-        }
-
-        protected void handleInform(ACLMessage inform){
-            try {
-                DFAgentDescription[] result = DFService.decodeNotification(inform.getContent());
-                if (result.length > 0) {
-                    System.out.println("Profiler agent " + getLocalName() + " received a subscription message from SuperAgent with name " + getDefaultDF());
-
-                }
-            } catch (FIPAException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
 
 }
