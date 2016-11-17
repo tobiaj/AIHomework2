@@ -25,7 +25,7 @@ public class CuratorAgent extends SuperAgent {
         registerService(this, service);
 
         MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
-        MessageTemplate messageTemplateWinner = MessageTemplate.MatchOntology("Winner");
+        MessageTemplate messageTemplateWinner = MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL);
 
 
         MessageReceiver messageReceiver = new MessageReceiver(this, messageTemplate, Long.MAX_VALUE, null, null);
@@ -44,7 +44,6 @@ public class CuratorAgent extends SuperAgent {
         @Override
         protected void handleMessage(ACLMessage msg) {
             super.handleMessage(msg);
-            System.out.println("Kommer inform message till curator, message content: " + msg.getContent());
             Auction auction = new Auction();
             addBehaviour(auction);
         }
@@ -60,12 +59,7 @@ public class CuratorAgent extends SuperAgent {
         @Override
         protected void handleMessage(ACLMessage msg) {
             super.handleMessage(msg);
-            System.out.println("Jag vann : " + myAgent.getLocalName());
-        }
-
-        @Override
-        public void reset() {
-            super.reset();
+            System.out.println("Jag heter " + getLocalName() + " och jag vann!");
         }
     }
 
@@ -77,18 +71,19 @@ public class CuratorAgent extends SuperAgent {
             MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.CFP);
             ACLMessage msg = myAgent.blockingReceive(mt);
 
-            int rand = new Random().nextInt(100+1);
+            int rand = new Random().nextInt(100 + 1);
 
-            if (msg != null) {
-                System.out.println("Meddelandet som Curator: " + getLocalName() + " tog emot: " + msg.getContent());
+            if (msg != null && ArtistManager.receivedAnswers <= 1) {
+                System.out.println("Price that curator " + getLocalName() + " received: " + msg.getContent());
                 ACLMessage reply = msg.createReply();
-                reply.setContent("Skicka tillbaka från curator: " + getLocalName());
-                if (rand > 90)
-                    reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-
-                else
-                    reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
-
+                //              reply.setContent("Skicka tillbaka från curator: " + getLocalName());
+                if (rand > 90) {
+                    reply.setPerformative(ACLMessage.PROPOSE);
+                    System.out.println(getLocalName() + " accepts.");
+                } else {
+                    reply.setPerformative(ACLMessage.REFUSE);
+                    System.out.println(getLocalName() + " rejects.");
+                }
                 send(reply);
             } else {
                 block();
@@ -100,6 +95,4 @@ public class CuratorAgent extends SuperAgent {
             return false;
         }
     }
-
-
 }

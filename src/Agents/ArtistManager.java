@@ -24,7 +24,8 @@ public class ArtistManager extends SuperAgent {
     private Artifacts artifact;
 
     private static ArrayList<AID> participants;
-    private int receivedAnswers = 0;
+    public static int receivedAnswers = 0;
+    public boolean auctionEnd = false;
 
     public void setup() {
         super.setup();
@@ -43,13 +44,13 @@ public class ArtistManager extends SuperAgent {
 
             ACLMessage msg = new ACLMessage(ACLMessage.CFP);
 
-            msg.setContent("item" + " ,price: " + artifact.getInitialPrice());
+            msg.setContent(String.valueOf(artifact.getInitialPrice()));
 
             participants.forEach(msg::addReceiver);
             send(msg);
 
-            MessageTemplate messageTemplateAccept = MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL);
-            MessageTemplate messageTemplateDeny = MessageTemplate.MatchPerformative(ACLMessage.REJECT_PROPOSAL);
+            MessageTemplate messageTemplateAccept = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
+            MessageTemplate messageTemplateDeny = MessageTemplate.MatchPerformative(ACLMessage.REFUSE);
 
             ReceiveProposeAccept receiveProposeAccept = new ReceiveProposeAccept(myAgent, messageTemplateAccept, Long.MAX_VALUE, null, null);
             ReceiveProposeDeny receiveProposeDeny = new ReceiveProposeDeny(myAgent, messageTemplateDeny, Long.MAX_VALUE, null, null);
@@ -59,7 +60,7 @@ public class ArtistManager extends SuperAgent {
 
         }
 
-        public class ReceiveProposeAccept extends MsgReceiver{
+        public class ReceiveProposeAccept extends MsgReceiver {
             public ReceiveProposeAccept(Agent a, MessageTemplate mt, long deadline, DataStore s, Object msgKey) {
                 super(a, mt, deadline, s, msgKey);
             }
@@ -67,20 +68,22 @@ public class ArtistManager extends SuperAgent {
             @Override
             protected void handleMessage(ACLMessage msg) {
                 super.handleMessage(msg);
-                    ACLMessage reply = blockingReceive();
-                System.out.println("Got a approve form curator agent: " + msg.getSender());
-                reply.addReceiver(msg.getSender());
-                reply.createReply();
-                reply.setOntology("Winner");
-                reply.setContent("Winner");
-                send(reply);
+                msg.addReceiver(msg.getSender());
+                msg.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+                //ACLMessage reply = blockingReceive();
+                //System.out.println("Got a approve form curator agent: " + msg.getSender());
+                //reply.addReceiver(msg.getSender());
+                //reply.createReply();
+
+
+                send(msg);
 
             }
 
         }
     }
 
-    public class ReceiveProposeDeny extends MsgReceiver{
+    public class ReceiveProposeDeny extends MsgReceiver {
         public ReceiveProposeDeny(Agent a, MessageTemplate mt, long deadline, DataStore s, Object msgKey) {
             super(a, mt, deadline, s, msgKey);
         }
@@ -88,19 +91,20 @@ public class ArtistManager extends SuperAgent {
         @Override
         protected void handleMessage(ACLMessage msg) {
             super.handleMessage(msg);
-            ACLMessage reply = blockingReceive();
+            //ACLMessage reply = blockingReceive();
 
-            if (receivedAnswers != participants.size()){
-                System.out.println("Got deny message containing: " + reply.getContent());
-                receivedAnswers++;
-            }
-            else {
-                System.out.println("Taken all proposes");
-                receivedAnswers = 0;
+            ++receivedAnswers;
+
+            if (receivedAnswers != participants.size() - 1) {
+                System.out.println("Got " + receivedAnswers + " answers so far.");
+            } else {
+                System.out.println("Taken all answers.");
                 double price = getNewProposal();
+                System.out.println("New price proposed! (" + price + ").");
                 ACLMessage newResponse = new ACLMessage(ACLMessage.INFORM);
-                newResponse.setContent("item" + " ,price: " + price);
+                newResponse.setContent(String.valueOf(price));
                 send(newResponse);
+                receivedAnswers = 0;
             }
         }
 
@@ -111,9 +115,9 @@ public class ArtistManager extends SuperAgent {
     }
 
     private double getNewProposal() {
-        double newPrice =  (int) artifact.getInitialPrice() * 0.9;
+        double newPrice = (int) artifact.getInitialPrice() * 0.9;
         artifact.setInitialPrice(newPrice);
-        return  newPrice;
+        return newPrice;
     }
 
     private void startAuction() {
