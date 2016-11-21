@@ -13,7 +13,7 @@ public class Artifacts implements Serializable {
     public Artifacts(){
         name = "item";
         reservedPrice = 100;
-        initialPrice = 100 * 10;
+        initialPrice = 1000;
     }
 
     public String getName() {

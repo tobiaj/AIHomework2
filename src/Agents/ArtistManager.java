@@ -25,6 +25,7 @@ public class ArtistManager extends SuperAgent {
     private static ArrayList<AID> toCheck;
     public static int receivedAnswers = 0;
     public static boolean auctionEnd = false;
+    public static double initialPrice;
 
     public void setup() {
         super.setup();
@@ -38,6 +39,7 @@ public class ArtistManager extends SuperAgent {
         auctionEnd = false;
         getAllCuratorAID();
         artifact = new Artifacts();
+        initialPrice = artifact.getInitialPrice();
 
         addBehaviour(new WakerBehaviour(this, 5000) {
             @Override
@@ -55,7 +57,7 @@ public class ArtistManager extends SuperAgent {
         public void action() {
 
             MessageTemplate messageTemplateAccept = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
-            MessageTemplate messageTemplateDeny = MessageTemplate.MatchPerformative(ACLMessage.REFUSE);
+            MessageTemplate messageTemplateDeny = MessageTemplate.or(MessageTemplate.MatchPerformative(ACLMessage.REFUSE), MessageTemplate.MatchPerformative(ACLMessage.INFORM));
 
             ReceiveProposeAccept receiveProposeAccept = new ReceiveProposeAccept(myAgent, messageTemplateAccept, Long.MAX_VALUE, null, null);
             ReceiveProposeDeny receiveProposeDeny = new ReceiveProposeDeny(myAgent, messageTemplateDeny, Long.MAX_VALUE, null, null);
@@ -80,12 +82,9 @@ public class ArtistManager extends SuperAgent {
                 send(msg);
                 auctionEnd = true;
 
-            }
-
-            @Override
-            public int onEnd() {
                 startingPoint();
-                return super.onEnd();
+                //takeDown();
+
             }
         }
     }
@@ -103,13 +102,20 @@ public class ArtistManager extends SuperAgent {
                 toCheck.remove(msg.getSender());
 
                 if (toCheck.size() == 0) {
-                    System.out.println("Taken all answers");
                     double price = getNewProposal();
 
                     addBehaviour(new WakerBehaviour(myAgent, 1000) {
                         @Override
                         protected void onWake() {
-                            ACLMessage newResponse = new ACLMessage(ACLMessage.INFORM);
+                            System.out.println("Taken all answers");
+                        }
+                    });
+
+
+                    addBehaviour(new WakerBehaviour(myAgent, 2000) {
+                        @Override
+                        protected void onWake() {
+                            ACLMessage newResponse = new ACLMessage(ACLMessage.REJECT_PROPOSAL);//Reject
                             participants.forEach(newResponse::addReceiver);
                             newResponse.setContent(String.valueOf(price));
 
@@ -180,5 +186,10 @@ public class ArtistManager extends SuperAgent {
     private void createToCheck() {
         toCheck = new ArrayList<>(participants);
 
+    }
+
+    @Override
+    protected void takeDown() {
+        System.out.println("The Artist manager agent " + getLocalName() + " has ended");
     }
 }

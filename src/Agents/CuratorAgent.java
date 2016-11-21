@@ -13,15 +13,19 @@ import java.util.Random;
  * Created by tobiaj on 2016-11-09.
  */
 public class CuratorAgent extends SuperAgent {
-
+private double maxPrice;
 
     public void setup() {
         super.setup();
-        System.out.println("The Curator agent " + getLocalName() + " has started");
 
         String service = "bidder";
 
         registerService(this, service);
+
+        maxPrice = Math.random() * 1000;
+
+        System.out.println("The Curator agent " + getLocalName() + " has started and will accept " + maxPrice);
+
 
         addBehaviour(new OneShotBehaviour() {
             @Override
@@ -74,8 +78,11 @@ public class CuratorAgent extends SuperAgent {
         protected void handleMessage(ACLMessage msg) {
             super.handleMessage(msg);
             System.out.println("Jag heter " + getLocalName() + " och jag vann!");
+
             startingPoint();
+            //takeDown();
         }
+
 
     }
 
@@ -85,16 +92,24 @@ public class CuratorAgent extends SuperAgent {
         public void action() {
 
             if (!ArtistManager.auctionEnd) {
-                MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+                MessageTemplate mt = MessageTemplate.or(MessageTemplate.MatchPerformative(ACLMessage.INFORM), MessageTemplate.MatchPerformative(ACLMessage.REJECT_PROPOSAL));
                 ACLMessage msg = myAgent.blockingReceive(mt);
 
-                int rand = new Random().nextInt(100 + 1);
-
-                if (msg != null && ArtistManager.receivedAnswers <= 1) {
+                if (msg != null) {
                     ACLMessage reply = msg.createReply();
-                    if (rand > 90) {
+
+                    if (msg.getContent().equals("START AUCTION")){
+                        reply.setPerformative(ACLMessage.INFORM);
+
+
+                        }
+
+                   else if (Double.parseDouble(msg.getContent()) <= maxPrice) {
+                        System.out.println("Curator agent: " + getLocalName() + " sends propose");
                         reply.setPerformative(ACLMessage.PROPOSE);
                     } else {
+                        System.out.println("Curator agent: " + getLocalName() + " sends refuse");
+
                         reply.setPerformative(ACLMessage.REFUSE);
                     }
                     send(reply);
@@ -103,6 +118,8 @@ public class CuratorAgent extends SuperAgent {
                 }
             }
             else{
+
+                //takeDown();
                 startingPoint();
             }
         }
@@ -110,5 +127,10 @@ public class CuratorAgent extends SuperAgent {
         public boolean done() {
             return false;
         }
+    }
+
+    @Override
+    protected void takeDown() {
+        System.out.println("The Artist manager agent " + getLocalName() + " has ended");
     }
 }
